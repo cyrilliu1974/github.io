@@ -3,8 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 品牌識別 Meta -->
+  <meta name="application-name" content="The Glasses Dog">
+  <meta name="description" content="The Glasses Dog is an independent workflow automation platform powered by n8n, designed to help individuals and businesses streamline processes and boost productivity.">
   <title>The Glasses Dog</title>
   <link rel="icon" href="logo.png" type="image/png">
+  <!-- JSON-LD 結構化資料，有助於 Google 識別品牌身份 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "The Glasses Dog",
+    "url": "https://main.theglassesdog.com",
+    "logo": "https://main.theglassesdog.com/logo.png",
+    "description": "The Glasses Dog is an independent workflow automation platform powered by n8n, designed to help individuals and businesses streamline processes and boost productivity."
+  }
+  </script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,14 +39,19 @@
       align-items: center;
     }
     .logo img {
-      height: 50px;
+      height: 50px; /* 根據需求調整圖示尺寸 */
       width: auto;
       margin-right: 10px;
     }
-    .logo span {
+    .logo .brand-name {
       font-size: 24px;
       font-weight: bold;
       color: #333;
+    }
+    .logo .tagline {
+      font-size: 14px;
+      color: #555;
+      margin-left: 10px;
     }
     nav a {
       text-decoration: none;
@@ -60,23 +79,29 @@
   <header>
     <div class="logo">
       <img src="logo.png" alt="The Glasses Dog Logo">
-      <span>The Glasses Dog</span>
+      <div>
+        <div class="brand-name">The Glasses Dog</div>
+        <div class="tagline">Empowering Workflow Automation</div>
+      </div>
     </div>
     <nav>
-      <a href="/">Home</a>
-      <a href="/about.html">About Us</a>
-      <a href="/contact.html">Contact</a>
-      <a href="https://pr.theglassesdog.shop/">Privacy Policy</a>
-      <a href="/terms.html">Terms of Service</a>
+      <a href="https://main.theglassesdog.com/">Home</a>
+      <a href="https://main.theglassesdog.com/about.html">About Us</a>
+      <a href="https://main.theglassesdog.com/contact.html">Contact</a>
+      <a href="https://pr.theglassesdog.com">Privacy Policy</a>
+      <a href="https://main.theglassesdog.com/terms.html">Terms of Service</a>
     </nav>
   </header>
   <div class="container">
     <h1>Welcome to The Glasses Dog</h1>
     <p>
-      The Glasses Dog is an innovative platform powered by n8n, designed to help individuals and businesses streamline workflows and boost productivity. Our mission is to make automation accessible to everyone.
+      The Glasses Dog is an independent workflow automation platform powered by n8n, designed to help individuals and businesses streamline processes and boost productivity.
     </p>
     <p>
-      Our platform seamlessly integrates with a variety of tools and services, enabling you to create custom automated workflows tailored to your unique needs. Explore our services and discover how we can transform your business processes.
+      Our platform seamlessly integrates with a variety of tools and services, allowing you to create custom automated workflows tailored to your unique needs.
+    </p>
+    <p>
+      Explore our services and discover how we can transform your business processes.
     </p>
   </div>
   <footer>
