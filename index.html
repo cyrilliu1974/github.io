@@ -12,6 +12,23 @@
             color: #e0e1dd;
             overflow-x: hidden;
         }
+        /* 設定所有超連結的樣式 */
+  a {
+    color: #00FFFF;           /* 超連結文字顏色：亮青色 (Aqua)，在黑色背景上很顯眼 */
+    text-decoration: none;     /* 移除超連結下劃線，讓視覺更簡潔 */
+    font-weight: bold;         /* 讓文字加粗，增加辨識度 */
+  }
+
+  /* 設定滑鼠懸停在超連結上時的樣式 (讓用戶知道這是可點擊的) */
+  a:hover {
+    color: #FFFF00;           /* 懸停時變為亮黃色 */
+    text-decoration: underline; /* 懸停時顯示下劃線，增加互動感 */
+  }
+
+  /* 設定已訪問過超連結的樣式 */
+  a:visited {
+    color: #A0EEFF;           /* 已訪問連結的顏色：較淺的藍色，與未訪問的區分開 */
+  }
         .container {
             max-width: 1200px;
             margin: 0 auto;
