@@ -183,6 +183,11 @@
     </style>
 </head>
 <body>
+    <div id="file-drop-zone" style="border: 2px dashed #555; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; margin: 20px auto; max-width: 1200px;">
+    <p style="margin: 0; font-size: 1.1em; color: #e2e8f0;">
+        請將 <strong>experience_db_generated.json</strong> 和 <strong>model_config.json</strong><br>拖曳到此處，或點擊選擇檔案
+    </p>
+    <input type="file" id="file-input" multiple style="display: none;"></div>
     <div class="container">
         <div class="header card">
             <h1>🧠 AI Intuition Explorer</h1>
@@ -274,12 +279,14 @@
 
     <div class="tooltip" id="tooltip"></div>
 
-    <script>
+  
+<script>
         // Global variables
         let allData = [], configData = {};
         let isDbLoaded = false, isConfigLoaded = false;
         let symbolStats = {}, networkData = { nodes: [], links: [] };
         let simulation;
+        let idToToken = {}; // ✅ 1. 正確地在全域範圍宣告 idToToken
         let symbolColorScale = d3.scaleOrdinal(d3.schemeCategory10);
         let sequenceColorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 255]);
         let attentionColorScale = d3.scaleSequential(d3.interpolateReds).domain([0, 1]);
@@ -289,8 +296,8 @@
         const svgNetwork = d3.select("#symbolNetwork");
         const svgReward = d3.select("#rewardChart");
         const svgGating = d3.select("#gatingChart");
-        const tooltip = d3.select("#tooltip");
         const experienceTableBody = d3.select("#experienceTableBody");
+        const tooltip = d3.select(".tooltip"); // ✅ 2. 正確地選取 tooltip
 
         async function loadFileFromURL(url, statusId, onDataLoaded) {
             const statusEl = document.getElementById(statusId);
@@ -348,6 +355,13 @@
         setupUploader('configFileInput', 'configFileStatus', (data) => {
             configData = data;
             isConfigLoaded = true;
+            // ✅ 3. 在讀取設定檔後，建立 idToToken 查找表
+            const vocab = configData.vocab;
+            if (vocab) {
+                for (const token in vocab) {
+                    idToToken[vocab[token]] = token;
+                }
+            }
             tryInitializeDashboard();
         });
         
@@ -365,6 +379,13 @@
             loadFileFromURL(url, 'configFileStatus', (data) => {
                 configData = data;
                 isConfigLoaded = true;
+                // ✅ 3. 在讀取設定檔後，建立 idToToken 查找表 (URL方式)
+                const vocab = configData.vocab;
+                if (vocab) {
+                    for (const token in vocab) {
+                        idToToken[vocab[token]] = token;
+                    }
+                }
                 tryInitializeDashboard();
             });
         });
@@ -552,7 +573,8 @@
             detailsContainer.innerHTML = `<h4>Symbol ${d.id}</h4><p><strong>Total Usage Count:</strong> ${d.count}</p><p><strong>Average Reward:</strong> ${avgReward}</p><p><strong>Average Gating Score:</strong> ${avgGating}</p><p><strong>Number of Experiences Involved:</strong> ${d.experienceIds.size}</p>`;
             analyzeThoughtPatterns(d.id);
         }
-        
+
+        // ✅ 4. 確保 analyzeThoughtPatterns 函式存在
         function analyzeThoughtPatterns(clickedSymbolId) {
             const container = d3.select("#thoughtPatternDetails");
             container.html("");
@@ -574,8 +596,8 @@
                 const item = container.append("div").attr("class", "pattern-item");
                 item.html(`<p><strong>Pattern:</strong> <span class="pattern-chain">${patternKey}</span> (Appeared ${stats.count} times)</p><p><strong>Historical Success Rate:</strong> ${(avgReward * 100).toFixed(2)}%</p><p><strong>Most Frequently Points to Category:</strong> ${dominantLabel}</p>`);
             });
-        }
-        
+        }        
+
         function drawCategoryCharts(data, config) {
             const container = d3.select("#categorySymbolAnalysis");
             container.html("");
@@ -634,7 +656,7 @@
             }
 
             let weights = experience.attention_weights;
-            let weights2D; 
+            let weights2D;
 
             if (Array.isArray(weights[0]) && weights[0].length === 1 && Array.isArray(weights[0][0])) {
                 weights2D = weights.map(item => item[0]);
@@ -663,6 +685,8 @@
                 return;
             }
 
+            const tokens = (experience.input_ids || []).map(id => idToToken[id] || '?');
+            const sequenceLength = configData.sequence_length || 100;
             const flatWeights = weights2D.flat();
             const scaleFactor = parseFloat(document.getElementById("attentionScale").value) || 1;
             const scaledWeights = flatWeights.map(w => w * scaleFactor);
@@ -682,13 +706,37 @@
                      .style("width", "250px")
                      .style("height", "250px");
 
-            scaledWeights.forEach(weight => {
-                container.append("div")
-                    .style("background-color", attentionColorScale(weight))
-                    .attr("title", `Weight: ${weight.toFixed(4)}`);
+            weights2D.forEach((row, i) => {
+                row.forEach((value, j) => {
+                    const scaledValue = value * scaleFactor;
+                    container.append("div")
+                        .style("background-color", attentionColorScale(scaledValue))
+                        .on("mouseover", function() {
+                            tooltip.style("opacity", 1);
+                            d3.select(this).style("outline", "1px solid var(--accent-color)");
+                        })
+                        .on("mousemove", function(event) {
+                            const matrixSize = weights2D.length;
+                            const chunk = sequenceLength / matrixSize;
+                            const y_start = Math.floor(i * chunk);
+                            const x_start = Math.floor(j * chunk);
+                            const y_tokens = tokens.slice(y_start, y_start + chunk).join('').replace(/<PAD>|<UNK>/g, '');
+                            const x_tokens = tokens.slice(x_start, x_start + chunk).join('').replace(/<PAD>|<UNK>/g, '');
+                            const tooltipText = `<b>Weight:</b> ${scaledValue.toFixed(4)}<br>` +
+                                              `<b>Y-Axis Tokens:</b> "...${y_tokens}..."<br>` +
+                                              `<b>X-Axis Tokens:</b> "...${x_tokens}..."`;
+                            tooltip.html(tooltipText)
+                                .style("left", (event.pageX + 15) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function() {
+                            tooltip.style("opacity", 0);
+                            d3.select(this).style("outline", "none");
+                        });
+                });
             });
-        }
-        
+        }     
+
         function _tokenizeText(text, vocab, seqLen) {
             const unkToken = vocab["<UNK>"] || 1;
             let token_ids = [];
@@ -717,19 +765,16 @@
                 return;
             }
 
-            // Step 1: Tokenize the user's input text just like the model would.
             const userInputTokens = _tokenizeText(inputText, configData.vocab, configData.sequence_length);
-            const userInputTokenSet = new Set(userInputTokens.filter(id => id > 1)); // Exclude PAD and UNK for better matching
+            const userInputTokenSet = new Set(userInputTokens.filter(id => id > 1)); 
             
             let bestMatch = null;
             let maxScore = -1;
 
-            // Step 2: Find the experience with the most similar token IDs in the database.
             allData.forEach(exp => {
-                if (!exp.input_ids) return; // Skip if data is from old DB format
+                if (!exp.input_ids) return; 
                 const expTokenSet = new Set(exp.input_ids.filter(id => id > 1));
                 
-                // Jaccard similarity calculation
                 const intersection = new Set([...userInputTokenSet].filter(x => expTokenSet.has(x)));
                 const union = new Set([...userInputTokenSet, ...expTokenSet]);
                 const score = union.size === 0 ? 0 : intersection.size / union.size;
@@ -745,7 +790,6 @@
                 return;
             }
 
-            // Step 3: Generate a report based on the found historical experience.
             const { quantized_indices, gating_scores, label_text } = bestMatch;
             
             let report = `【Step 1: Text to Input IDs (Based on your input)】\n`;
@@ -797,6 +841,8 @@
             return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
         }
 
+
     </script>
+
 </body>
 </html>
