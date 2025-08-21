@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Intuition Explorer</title>
+    <script src="./d3.min.js"></script>
+    <script>
+        if (typeof d3 === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>');
+        }
+    </script>
+    <style>
+        :root {
+            --bg-gradient-start: #1e293b;
+            --bg-gradient-end: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --border-color: #334155;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --placeholder-color: #475569;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px var(--shadow-color);
+        }
+        
+        .card h3 {
+            color: var(--text-primary); margin-bottom: 15px; border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .placeholder {
+            color: var(--placeholder-color); text-align: center; padding: 20px 0; font-style: italic;
+        }
+
+        .header h1 {
+            font-size: 2.5em; font-weight: 700; margin-bottom: 10px; color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); text-align: center;
+        }
+        .header p { text-align: center; color: var(--text-secondary); }
+
+        .data-uploader {
+            padding: 20px; border: 2px dashed var(--border-color); border-radius: 10px;
+            background: rgba(0,0,0,0.2); transition: all 0.3s ease;
+            display: flex; justify-content: space-around; align-items: flex-start; gap: 20px;
+            flex-wrap: wrap;
+        }
+        .uploader-group {
+            display: flex; flex-direction: column; gap: 10px; align-items: center;
+        }
+        .uploader-group h4 { color: var(--text-primary); }
+        .data-uploader button {
+            background: var(--accent-color); color: white; padding: 10px 20px; border: none;
+            border-radius: 8px; cursor: pointer; transition: all 0.3s ease; width: 100%;
+        }
+        .data-uploader button:hover {
+            transform: translateY(-2px); box-shadow: 0 4px 10px rgba(56, 189, 248, 0.4);
+        }
+        .url-loader { display: flex; gap: 5px; width: 100%; }
+        .url-loader input {
+            flex-grow: 1; background-color: #0f172a; border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 8px; border-radius: 8px;
+        }
+        .url-loader button { width: auto; }
+        .upload-status { color: var(--text-secondary); font-size: 0.9em; margin-top: 5px; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        
+        .viz-card { position: relative; }
+
+        .zoom-controls {
+            position: absolute; top: 60px; right: 20px; display: flex;
+            flex-direction: column; gap: 8px; z-index: 10;
+        }
+        .zoom-controls button {
+            background-color: rgba(30, 41, 59, 0.8); border: 1px solid var(--border-color);
+            color: var(--text-primary); width: 36px; height: 36px; border-radius: 8px;
+            cursor: pointer; font-size: 1.5em; line-height: 1; transition: background-color 0.2s;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .zoom-controls button:hover { background-color: var(--border-color); }
+
+        #symbolNetwork {
+            width: 100%; height: 600px; background-color: #0f172a;
+            border-radius: 10px; cursor: grab;
+        }
+        #symbolNetwork:active { cursor: grabbing; }
+
+        .node:hover { stroke: var(--accent-color); stroke-width: 3px; }
+        .link { stroke: var(--border-color); }
+        .node.highlighted, .link.highlighted { stroke: #f59e0b; stroke-width: 4px; }
+
+        .tooltip {
+            position: absolute; padding: 12px; background: rgba(0, 0, 0, 0.9); color: white;
+            border-radius: 8px; font-size: 12px; pointer-events: none; opacity: 0;
+            transition: opacity 0.3s; z-index: 1000; border: 1px solid var(--border-color);
+        }
+
+        .experience-explorer { margin-top: 20px; height: 400px; overflow-y: auto; }
+        .experience-table { width: 100%; border-collapse: collapse; }
+        .experience-table th, .experience-table td {
+            padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+        .experience-table th { position: sticky; top: 0; background: #1e293b; }
+        .sequence-band { display: flex; gap: 1px; }
+        .sequence-block { width: 8px; height: 16px; }
+        .reward-bar, .gating-bar { height: 16px; border-radius: 4px; }
+        .experience-table tr { cursor: pointer; }
+        .experience-table tr:hover { background-color: rgba(255,255,255,0.05); }
+
+        #categorySymbolAnalysis {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
+        }
+        .category-chart-container { background: #0f172a; padding: 15px; border-radius: 10px; }
+        .category-chart-container h4 { color: var(--accent-color); margin-bottom: 10px; }
+
+        #inferenceSimulator { font-family: monospace; }
+        #inferenceInput {
+            width: 100%; background-color: #0f172a; border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 10px; border-radius: 8px; margin-bottom: 10px;
+        }
+        #inferenceSimulator button {
+            width: 100%; background: var(--accent-color); color: white; padding: 10px 20px;
+            border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
+        }
+        #inferenceResult {
+            margin-top: 20px; white-space: pre-wrap; line-height: 1.6; font-size: 0.9em;
+            background: #0f172a; padding: 15px; border-radius: 10px;
+        }
+        .attention-analyzer { margin-top: 20px; }
+        .attention-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        
+        #attentionHeatmap {
+            padding: 15px; 
+            background: #0f172a; 
+            border-radius: 10px;
+        }
+        
+        #thoughtPatternDetails {
+            margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);
+        }
+        #thoughtPatternDetails h4 { color: var(--accent-color); margin-bottom: 15px; }
+        .pattern-item { margin-bottom: 15px; font-size: 0.9em; }
+        .pattern-item strong { color: var(--text-primary); }
+        .pattern-chain {
+            font-weight: bold; background-color: #0f172a; padding: 2px 6px;
+            border-radius: 4px; display: inline-block;
+        }
+
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div id="file-drop-zone" style="border: 2px dashed #555; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; margin: 20px auto; max-width: 1200px;">
+    <p style="margin: 0; font-size: 1.1em; color: #e2e8f0;">
+        請將 <strong>experience_db_generated.json</strong> 和 <strong>model_config.json</strong><br>拖曳到此處，或點擊選擇檔案
+    </p>
+    <input type="file" id="file-input" multiple style="display: none;"></div>
+    <div class="container">
+        <div class="header card">
+            <h1>🧠 AI Intuition Explorer</h1>
+            <p>An AI internal reasoning visualization system integrating macro statistics, micro sequences, and relational networks</p>
+        </div>
+
+        <div class="data-uploader card">
+            <div class="uploader-group">
+                <h4>Experience DB</h4>
+                <button onclick="document.getElementById('dbFileInput').click()">📁 Upload from local</button>
+                <input type="file" id="dbFileInput" accept=".json" style="display: none;">
+                <div class="url-loader">
+                    <input type="text" id="dbUrlInput" placeholder="or paste URL">
+                    <button id="dbUrlButton">Load</button>
+                </div>
+                <p id="dbFileStatus" class="upload-status">Pending</p>
+            </div>
+            <div class="uploader-group">
+                <h4>Model Config</h4>
+                <button onclick="document.getElementById('configFileInput').click()">⚙️ Upload from local</button>
+                <input type="file" id="configFileInput" accept=".json" style="display: none;">
+                <div class="url-loader">
+                    <input type="text" id="configUrlInput" placeholder="or paste URL">
+                    <button id="configUrlButton">Load</button>
+                </div>
+                <p id="configFileStatus" class="upload-status">Pending</p>
+            </div>
+        </div>
+        
+        <div class="card" id="inferenceSimulator">
+            <h3>Live Inference Simulator</h3>
+            <textarea id="inferenceInput" rows="3" placeholder="Enter or paste the text you want to analyze here..."></textarea>
+            <button id="analyzeButton">Analyze</button>
+            <div id="inferenceResult"><p class="placeholder">Please upload files and enter text to perform analysis. This feature will find the most similar historical experience from the database to simulate the model's reasoning process.</p></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="chart-card">
+                <h3>Reward Distribution</h3>
+                <svg id="rewardChart"></svg>
+            </div>
+            <div class="chart-card">
+                <h3>Gating Score Distribution</h3>
+                <svg id="gatingChart"></svg>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="viz-card">
+                <h3>Symbol Relation Network</h3>
+                <div class="zoom-controls">
+                    <button id="zoom-in">+</button>
+                    <button id="zoom-out">-</button>
+                    <button id="zoom-reset">⟲</button>
+                </div>
+                <svg id="symbolNetwork"></svg>
+            </div>
+            <div class="panel-card">
+                <h3>Symbol Details</h3>
+                <div id="symbolDetails"><p class="placeholder">Click on a node in the network to view details</p></div>
+                <div id="thoughtPatternDetails"></div>
+            </div>
+        </div>
+
+        <div class="viz-card experience-explorer-card">
+             <h3>Interactive Experience Explorer</h3>
+             <div class="experience-explorer">
+                <table class="experience-table">
+                    <thead><tr><th>ID</th><th>Intuition Sequence</th><th>Original Text</th><th>Reward</th><th>Gating Score</th></tr></thead>
+                    <tbody id="experienceTableBody"></tbody>
+                </table>
+             </div>
+             <div class="attention-analyzer">
+                <h3>Attention Analyzer</h3>
+                <div class="attention-controls">
+                    <label for="attentionScale">Color Scaling Factor:</label>
+                    <input type="range" id="attentionScale" value="50" min="1" max="500" step="1">
+                    <span id="attentionScaleValue">50</span>
+                </div>
+                <div id="attentionHeatmap"><p class="placeholder">Click on a data entry in the table above to view the attention heatmap</p></div>
+             </div>
+        </div>
+
+        <div class="viz-card category-analysis-card">
+            <h3>Symbol-Category Distribution</h3>
+            <div id="categorySymbolAnalysis"><p class="placeholder">Please upload files first</p></div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+  
+<script>
+        // Global variables
+        let allData = [], configData = {};
+        let isDbLoaded = false, isConfigLoaded = false;
+        let symbolStats = {}, networkData = { nodes: [], links: [] };
+        let simulation;
+        let idToToken = {}; // ✅ 1. 正確地在全域範圍宣告 idToToken
+        let symbolColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+        let sequenceColorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 255]);
+        let attentionColorScale = d3.scaleSequential(d3.interpolateReds).domain([0, 1]);
+        let currentExperienceForAttention = null;
+
+        // D3 selectors
+        const svgNetwork = d3.select("#symbolNetwork");
+        const svgReward = d3.select("#rewardChart");
+        const svgGating = d3.select("#gatingChart");
+        const experienceTableBody = d3.select("#experienceTableBody");
+        const tooltip = d3.select(".tooltip"); // ✅ 2. 正確地選取 tooltip
+
+        async function loadFileFromURL(url, statusId, onDataLoaded) {
+            const statusEl = document.getElementById(statusId);
+            if (!url.trim()) {
+                alert("Please enter a valid URL.");
+                return;
+            }
+            statusEl.textContent = "Downloading...";
+            statusEl.style.color = 'var(--text-secondary)';
+
+            try {
+                const correctedUrl = url.replace("www.dropbox.com", "dl.dropboxusercontent.com");
+                const response = await fetch(correctedUrl);
+                if (!response.ok) {
+                    throw new Error(`Network error: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+                statusEl.textContent = `✅ Loaded from URL`;
+                statusEl.style.color = '#22c55e';
+                onDataLoaded(data);
+            } catch (error) {
+                alert(`Error loading file from URL: ${error.message}`);
+                statusEl.textContent = `❌ URL Error`;
+                statusEl.style.color = '#ef4444';
+            }
+        }
+
+        const setupUploader = (inputId, statusId, onDataLoaded) => {
+            document.getElementById(inputId).addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        document.getElementById(statusId).textContent = `✅ ${file.name}`;
+                        document.getElementById(statusId).style.color = '#22c55e';
+                        onDataLoaded(data);
+                    } catch (error) {
+                        alert(`File ${file.name} format error: ${error.message}`);
+                        document.getElementById(statusId).textContent = `❌ Format Error`;
+                        document.getElementById(statusId).style.color = '#ef4444';
+                    }
+                };
+                reader.readAsText(file);
+            });
+        };
+
+        setupUploader('dbFileInput', 'dbFileStatus', (data) => {
+            allData = data;
+            isDbLoaded = true;
+            tryInitializeDashboard();
+        });
+
+        setupUploader('configFileInput', 'configFileStatus', (data) => {
+            configData = data;
+            isConfigLoaded = true;
+            // ✅ 3. 在讀取設定檔後，建立 idToToken 查找表
+            const vocab = configData.vocab;
+            if (vocab) {
+                for (const token in vocab) {
+                    idToToken[vocab[token]] = token;
+                }
+            }
+            tryInitializeDashboard();
+        });
+        
+        document.getElementById('dbUrlButton').addEventListener('click', () => {
+            const url = document.getElementById('dbUrlInput').value;
+            loadFileFromURL(url, 'dbFileStatus', (data) => {
+                allData = data;
+                isDbLoaded = true;
+                tryInitializeDashboard();
+            });
+        });
+
+        document.getElementById('configUrlButton').addEventListener('click', () => {
+            const url = document.getElementById('configUrlInput').value;
+            loadFileFromURL(url, 'configFileStatus', (data) => {
+                configData = data;
+                isConfigLoaded = true;
+                // ✅ 3. 在讀取設定檔後，建立 idToToken 查找表 (URL方式)
+                const vocab = configData.vocab;
+                if (vocab) {
+                    for (const token in vocab) {
+                        idToToken[vocab[token]] = token;
+                    }
+                }
+                tryInitializeDashboard();
+            });
+        });
+
+        document.getElementById('analyzeButton').addEventListener('click', runInferenceSimulation);
+        
+        const attentionSlider = document.getElementById('attentionScale');
+        const attentionValueLabel = document.getElementById('attentionScaleValue');
+        attentionSlider.addEventListener('input', (event) => {
+            attentionValueLabel.textContent = event.target.value;
+            if (currentExperienceForAttention) {
+                showAttentionHeatmap(currentExperienceForAttention);
+            }
+        });
+
+
+        function tryInitializeDashboard() {
+            if (isDbLoaded && isConfigLoaded) {
+                const validatedData = validateData(allData);
+                if (validatedData.length > 0) {
+                    allData = validatedData;
+                    allData.forEach((d, i) => d.id = i);
+                    initializeDashboard(allData);
+                }
+            }
+        }
+        
+        function validateData(rawData) {
+            if (!Array.isArray(rawData)) {
+                alert("The root level of the experience_db.json file must be an array.");
+                return [];
+            }
+            const originalCount = rawData.length;
+            if (originalCount === 0) {
+                alert("The uploaded experience_db.json file is empty.");
+                return [];
+            }
+
+            const validated = rawData.filter(item => 
+                item && typeof item === 'object' &&
+                Array.isArray(item.quantized_indices) && 
+                typeof item.reward === 'number' &&
+                Array.isArray(item.gating_scores) && 
+                item.gating_scores.length > 0 &&
+                typeof item.gating_scores[0] === 'number' &&
+                typeof item.original_text === 'string' && 
+                Array.isArray(item.attention_weights) 
+            );
+            
+            if (validated.length < originalCount) {
+                console.warn(`Filtered out ${originalCount - validated.length} data records with incomplete or invalid format.`);
+            }
+            if (validated.length === 0) {
+                alert(`No valid data found in the ${originalCount} records uploaded. Please confirm you are using the latest version of generate_experience_db.py to generate the file.`);
+            }
+            return validated;
+        }
+
+
+        function initializeDashboard(data) {
+            processData(data);
+            drawDistributionCharts(data);
+            updateVisualization(data);
+            drawCategoryCharts(data, configData);
+        }
+        
+        function processData(data) {
+            symbolStats = {};
+            const cooccurrence = new Map();
+            data.forEach(item => {
+                const symbols = item.quantized_indices;
+                const uniqueSymbols = [...new Set(symbols)];
+                uniqueSymbols.forEach(symbol => {
+                    if (!symbolStats[symbol]) {
+                        symbolStats[symbol] = { id: symbol, count: 0, rewards: [], gatings: [], experienceIds: new Set() };
+                    }
+                    symbolStats[symbol].count++;
+                    symbolStats[symbol].rewards.push(item.reward);
+                    symbolStats[symbol].gatings.push(item.gating_scores[0]);
+                    symbolStats[symbol].experienceIds.add(item.id);
+                });
+                for (let i = 0; i < symbols.length - 1; i++) {
+                    const pair = [symbols[i], symbols[i+1]].sort((a,b) => a-b).join('-');
+                    cooccurrence.set(pair, (cooccurrence.get(pair) || 0) + 1);
+                }
+            });
+            networkData.nodes = Object.values(symbolStats);
+            networkData.links = Array.from(cooccurrence.entries()).map(([pair, count]) => {
+                const [source, target] = pair.split('-').map(Number);
+                return { source, target, value: count };
+            });
+        }
+
+        function drawDistributionCharts(data) {
+            const drawRewardBarChart = (svg, rewardData) => {
+                const margin = {top: 10, right: 30, bottom: 30, left: 40};
+                const width = svg.node().getBoundingClientRect().width - margin.left - margin.right;
+                const height = 150 - margin.top - margin.bottom;
+                svg.selectAll("*").remove();
+                const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+                const count0 = rewardData.filter(d => d === 0).length;
+                const count1 = rewardData.filter(d => d === 1).length;
+                const counts = [{ label: "0 (Failure)", count: count0 }, { label: "1 (Success)", count: count1 }];
+                const x = d3.scaleBand().domain(counts.map(d => d.label)).range([0, width]).padding(0.4);
+                const y = d3.scaleLinear().domain([0, d3.max(counts, d => d.count) || 1]).range([height, 0]);
+                g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
+                g.append("g").call(d3.axisLeft(y));
+                g.selectAll(".bar").data(counts).join("rect").attr("class", "bar").attr("x", d => x(d.label)).attr("y", d => y(d.count)).attr("width", x.bandwidth()).attr("height", d => height - y(d.count)).attr("fill", "var(--accent-color)");
+            };
+            const drawGatingHistogram = (svg, values) => {
+                const margin = {top: 10, right: 30, bottom: 30, left: 40};
+                const width = svg.node().getBoundingClientRect().width - margin.left - margin.right;
+                const height = 150 - margin.top - margin.bottom;
+                svg.selectAll("*").remove();
+                const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+                const x = d3.scaleLinear().domain([0, 1]).range([0, width]);
+                g.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
+                const histogram = d3.histogram().value(d => d).domain(x.domain()).thresholds(x.ticks(40));
+                const bins = histogram(values);
+                const y = d3.scaleLinear().range([height, 0]);
+                y.domain([0, d3.max(bins, d => d.length) || 1]);
+                g.append("g").call(d3.axisLeft(y));
+                g.selectAll("rect").data(bins).join("rect").attr("x", 1).attr("transform", d => `translate(${x(d.x0)}, ${y(d.length)})`).attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1)).attr("height", d => height - y(d.length)).style("fill", "var(--accent-color)");
+            };
+            drawRewardBarChart(svgReward, data.map(d => d.reward));
+            drawGatingHistogram(svgGating, data.map(d => d.gating_scores[0]));
+        }
+        
+        function updateVisualization(filteredData) {
+            drawNetwork(filteredData);
+            updateExperienceTable(filteredData);
+        }
+
+        function drawNetwork(filteredData) {
+            const width = svgNetwork.node().getBoundingClientRect().width;
+            const height = 600;
+            svgNetwork.selectAll("*").remove();
+            const g = svgNetwork.append("g");
+            const filteredSymbolIds = new Set(filteredData.flatMap(item => item.quantized_indices).map(String));
+            const filteredNodes = networkData.nodes.filter(n => filteredSymbolIds.has(String(n.id)));
+            const filteredLinks = networkData.links.filter(l => filteredSymbolIds.has(String(l.source)) && filteredSymbolIds.has(String(l.target)));
+            if (simulation) simulation.stop();
+            simulation = d3.forceSimulation(filteredNodes).force("link", d3.forceLink(filteredLinks).id(d => d.id).strength(0.05)).force("charge", d3.forceManyBody().strength(-50)).force("center", d3.forceCenter(width / 2, height / 2));
+            const sizeScale = d3.scaleSqrt().domain([1, d3.max(networkData.nodes, d => d.count) || 1]).range([4, 25]);
+            const link = g.append("g").selectAll("line").data(filteredLinks).join("line").attr("class", "link").attr("stroke-width", d => Math.sqrt(d.value));
+            const node = g.append("g").selectAll("circle").data(filteredNodes, d => d.id).join("circle").attr("class", "node").attr("r", d => sizeScale(d.count)).attr("fill", d => symbolColorScale(d.id % 10)).call(drag(simulation));
+            node.on("mouseover", (event, d) => {
+                tooltip.style("opacity", 1).html(`<strong>Symbol ${d.id}</strong><br>Usage Count: ${d.count}`).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 10) + "px");
+            }).on("mouseout", () => {
+                tooltip.style("opacity", 0);
+            }).on("click", (event, d) => {
+                showSymbolDetails(d);
+                const relevantExperiences = allData.filter(exp => exp.quantized_indices.includes(d.id));
+                updateExperienceTable(relevantExperiences);
+            });
+            simulation.on("tick", () => {
+                link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+                node.attr("cx", d => d.x).attr("cy", d => d.y);
+            });
+            const zoom = d3.zoom().scaleExtent([0.1, 8]).on("zoom", (event) => g.attr("transform", event.transform));
+            svgNetwork.call(zoom);
+            d3.select("#zoom-in").on("click", () => svgNetwork.transition().duration(750).call(zoom.scaleBy, 1.2));
+            d3.select("#zoom-out").on("click", () => svgNetwork.transition().duration(750).call(zoom.scaleBy, 0.8));
+            d3.select("#zoom-reset").on("click", () => svgNetwork.transition().duration(750).call(zoom.transform, d3.zoomIdentity));
+        }
+        
+        function updateExperienceTable(data) {
+            experienceTableBody.selectAll("*").remove();
+            const rows = experienceTableBody.selectAll("tr").data(data.slice(0, 200)).join("tr");
+            rows.append("td").text(d => d.id);
+            rows.append("td").append("div").attr("class", "sequence-band").selectAll("div").data(d => d.quantized_indices).join("div").attr("class", "sequence-block").style("background-color", d => sequenceColorScale(d));
+            rows.append("td").text(d => d.original_text ? (d.original_text.length > 50 ? d.original_text.substring(0, 50) + '...' : d.original_text) : 'N/A');
+            rows.append("td").html(d => `<div class="reward-bar" style="width: ${d.reward * 100}%; background: ${d3.interpolateGreens(d.reward)};"></div> ${d.reward.toFixed(2)}`);
+            rows.append("td").html(d => `<div class="gating-bar" style="width: ${d.gating_scores[0] * 100}%; background: ${d3.interpolateBlues(d.gating_scores[0])};"></div> ${d.gating_scores[0].toFixed(2)}`);
+            rows.on("click", (event, d) => {
+                highlightNetworkNodes(d.quantized_indices);
+                showAttentionHeatmap(d);
+            });
+        }
+
+        function showSymbolDetails(d) {
+            const detailsContainer = document.getElementById('symbolDetails');
+            const avgReward = d.rewards.length > 0 ? d3.mean(d.rewards).toFixed(3) : 'N/A';
+            const avgGating = d.gatings.length > 0 ? d3.mean(d.gatings).toFixed(3) : 'N/A';
+            detailsContainer.innerHTML = `<h4>Symbol ${d.id}</h4><p><strong>Total Usage Count:</strong> ${d.count}</p><p><strong>Average Reward:</strong> ${avgReward}</p><p><strong>Average Gating Score:</strong> ${avgGating}</p><p><strong>Number of Experiences Involved:</strong> ${d.experienceIds.size}</p>`;
+            analyzeThoughtPatterns(d.id);
+        }
+
+        // ✅ 4. 確保 analyzeThoughtPatterns 函式存在
+        function analyzeThoughtPatterns(clickedSymbolId) {
+            const container = d3.select("#thoughtPatternDetails");
+            container.html("");
+            const relevantExperiences = allData.filter(exp => exp.quantized_indices && exp.quantized_indices.includes(clickedSymbolId));
+            if (relevantExperiences.length === 0) return;
+            const patternStats = new Map();
+            relevantExperiences.forEach(exp => {
+                const patternKey = exp.quantized_indices.join(' -> ');
+                if (!patternStats.has(patternKey)) patternStats.set(patternKey, { count: 0, rewards: [], labels: [] });
+                const stats = patternStats.get(patternKey);
+                stats.count++; stats.rewards.push(exp.reward); stats.labels.push(exp.label_text);
+            });
+            const sortedPatterns = Array.from(patternStats.entries()).sort((a, b) => b[1].count - a[1].count);
+            container.append("h4").text("Related Thought Pattern Analysis");
+            sortedPatterns.slice(0, 3).forEach(([patternKey, stats]) => {
+                const avgReward = d3.mean(stats.rewards);
+                const labelCounts = d3.rollup(stats.labels, v => v.length, d => d);
+                const dominantLabel = d3.greatest(labelCounts, ([, count]) => count)[0];
+                const item = container.append("div").attr("class", "pattern-item");
+                item.html(`<p><strong>Pattern:</strong> <span class="pattern-chain">${patternKey}</span> (Appeared ${stats.count} times)</p><p><strong>Historical Success Rate:</strong> ${(avgReward * 100).toFixed(2)}%</p><p><strong>Most Frequently Points to Category:</strong> ${dominantLabel}</p>`);
+            });
+        }        
+
+        function drawCategoryCharts(data, config) {
+            const container = d3.select("#categorySymbolAnalysis");
+            container.html("");
+            const categoryData = {};
+            const categories = Object.keys(config.label_to_id);
+            categories.forEach(cat => categoryData[cat] = new Map());
+            data.forEach(exp => {
+                const label = exp.label_text;
+                if (categories.includes(label) && exp.quantized_indices.length > 0) {
+                    const symbol = exp.quantized_indices[0];
+                    categoryData[label].set(symbol, (categoryData[label].get(symbol) || 0) + 1);
+                }
+            });
+            categories.forEach(cat => {
+                const symbols = Array.from(categoryData[cat].entries());
+                if (symbols.length === 0) return;
+                const topSymbols = symbols.sort((a, b) => b[1] - a[1]).slice(0, 10);
+                const chartContainer = container.append("div").attr("class", "category-chart-container");
+                chartContainer.append("h4").text(cat);
+                const svgHeight = 300;
+                const svg = chartContainer.append("svg").attr("width", "100%").attr("height", svgHeight);
+                const margin = {top: 20, right: 30, bottom: 40, left: 50};
+                const width = svg.node().getBoundingClientRect().width - margin.left - margin.right;
+                const height = svgHeight - margin.top - margin.bottom;
+                const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+                const x = d3.scaleLinear().domain([0, d3.max(topSymbols, d => d[1])]).range([0, width]);
+                const y = d3.scaleBand().domain(topSymbols.map(d => d[0])).range([0, height]).padding(0.1);
+                g.append("g").call(d3.axisLeft(y));
+                g.append("g").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(x).ticks(5));
+                g.selectAll(".bar").data(topSymbols).join("rect").attr("class", "bar").attr("y", d => y(d[0])).attr("height", y.bandwidth()).attr("x", 0).attr("width", d => x(d[1])).attr("fill", "var(--accent-color)");
+            });
+        }
+        
+        function highlightNetworkNodes(ids) {
+            svgNetwork.selectAll(".node").classed("highlighted", false);
+            svgNetwork.selectAll(".link").classed("highlighted", false);
+            if (!ids || ids.length === 0) return;
+            const idSet = new Set(ids.map(String));
+            svgNetwork.selectAll(".node")
+                .filter(d => idSet.has(String(d.id)))
+                .classed("highlighted", true);
+            svgNetwork.selectAll(".link")
+                .filter(d => idSet.has(String(d.source.id)) && idSet.has(String(d.target.id)))
+                .classed("highlighted", true);
+        }
+
+        function showAttentionHeatmap(experience) {
+            currentExperienceForAttention = experience;
+            const container = d3.select("#attentionHeatmap");
+            container.html("");
+            container.style("display", null).style("grid-template-columns", null).style("gap", null).style("width", null).style("height", null);
+
+            if (!experience.attention_weights || experience.attention_weights.length === 0) {
+                container.html("<p class='placeholder'>This experience data does not contain attention weight information.</p>");
+                return;
+            }
+
+            let weights = experience.attention_weights;
+            let weights2D;
+
+            if (Array.isArray(weights[0]) && weights[0].length === 1 && Array.isArray(weights[0][0])) {
+                weights2D = weights.map(item => item[0]);
+            }
+            else if (typeof weights[0] === 'number') {
+                const gridSize = Math.sqrt(weights.length);
+                if (!Number.isInteger(gridSize)) {
+                    container.html(`<p class='placeholder'>Error: The number of weights in the one-dimensional array (${weights.length}) is not a perfect square, unable to plot a heatmap.</p>`);
+                    return;
+                }
+                weights2D = [];
+                for (let i = 0; i < gridSize; i++) {
+                    weights2D.push(weights.slice(i * gridSize, (i + 1) * gridSize));
+                }
+            }
+            else if (Array.isArray(weights[0])) {
+                weights2D = weights;
+            }
+            else {
+                container.html("<p class='placeholder'>Unrecognizable attention weight format.</p>");
+                return;
+            }
+
+            if (!weights2D || weights2D.length === 0 || !Array.isArray(weights2D[0]) || weights2D[0].length === 0) {
+                container.html("<p class='placeholder'>Processed weight data is invalid or empty.</p>");
+                return;
+            }
+
+            const tokens = (experience.input_ids || []).map(id => idToToken[id] || '?');
+            const sequenceLength = configData.sequence_length || 100;
+            const flatWeights = weights2D.flat();
+            const scaleFactor = parseFloat(document.getElementById("attentionScale").value) || 1;
+            const scaledWeights = flatWeights.map(w => w * scaleFactor);
+            const maxWeight = d3.max(scaledWeights);
+
+            if (!maxWeight || maxWeight <= 0) {
+                container.html("<p class='placeholder'>All attention weights are zero, unable to generate a heatmap.</p>");
+                return;
+            }
+
+            attentionColorScale.domain([0, maxWeight]);
+            const numCols = weights2D[0].length;
+
+            container.style("display", "grid")
+                     .style("grid-template-columns", `repeat(${numCols}, 1fr)`)
+                     .style("gap", "2px")
+                     .style("width", "250px")
+                     .style("height", "250px");
+
+            weights2D.forEach((row, i) => {
+                row.forEach((value, j) => {
+                    const scaledValue = value * scaleFactor;
+                    container.append("div")
+                        .style("background-color", attentionColorScale(scaledValue))
+                        .on("mouseover", function() {
+                            tooltip.style("opacity", 1);
+                            d3.select(this).style("outline", "1px solid var(--accent-color)");
+                        })
+                        .on("mousemove", function(event) {
+                            const matrixSize = weights2D.length;
+                            const chunk = sequenceLength / matrixSize;
+                            const y_start = Math.floor(i * chunk);
+                            const x_start = Math.floor(j * chunk);
+                            const y_tokens = tokens.slice(y_start, y_start + chunk).join('').replace(/<PAD>|<UNK>/g, '');
+                            const x_tokens = tokens.slice(x_start, x_start + chunk).join('').replace(/<PAD>|<UNK>/g, '');
+                            const tooltipText = `<b>Weight:</b> ${scaledValue.toFixed(4)}<br>` +
+                                              `<b>Y-Axis Tokens:</b> "...${y_tokens}..."<br>` +
+                                              `<b>X-Axis Tokens:</b> "...${x_tokens}..."`;
+                            tooltip.html(tooltipText)
+                                .style("left", (event.pageX + 15) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function() {
+                            tooltip.style("opacity", 0);
+                            d3.select(this).style("outline", "none");
+                        });
+                });
+            });
+        }     
+
+        function _tokenizeText(text, vocab, seqLen) {
+            const unkToken = vocab["<UNK>"] || 1;
+            let token_ids = [];
+            for (const char of text) {
+                token_ids.push(vocab[char] || unkToken);
+            }
+            if (token_ids.length > seqLen) {
+                token_ids = token_ids.slice(0, seqLen);
+            } else {
+                const padToken = vocab["<PAD>"] || 0;
+                const padding = Array(seqLen - token_ids.length).fill(padToken);
+                token_ids.push(...padding);
+            }
+            return token_ids;
+        }
+
+        function runInferenceSimulation() {
+            const inputText = document.getElementById('inferenceInput').value;
+            const resultContainer = document.getElementById('inferenceResult');
+            if (!inputText.trim()) {
+                resultContainer.innerHTML = "<p class='placeholder'>Please enter text to analyze.</p>";
+                return;
+            }
+            if (!isDbLoaded || !isConfigLoaded) {
+                resultContainer.innerHTML = "<p class='placeholder'>Error: Please upload both experience_db.json and model_config.json first.</p>";
+                return;
+            }
+
+            const userInputTokens = _tokenizeText(inputText, configData.vocab, configData.sequence_length);
+            const userInputTokenSet = new Set(userInputTokens.filter(id => id > 1)); 
+            
+            let bestMatch = null;
+            let maxScore = -1;
+
+            allData.forEach(exp => {
+                if (!exp.input_ids) return; 
+                const expTokenSet = new Set(exp.input_ids.filter(id => id > 1));
+                
+                const intersection = new Set([...userInputTokenSet].filter(x => expTokenSet.has(x)));
+                const union = new Set([...userInputTokenSet, ...expTokenSet]);
+                const score = union.size === 0 ? 0 : intersection.size / union.size;
+
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestMatch = exp;
+                }
+            });
+
+            if (!bestMatch) {
+                resultContainer.innerHTML = "<p class='placeholder'>No similar historical experience found based on token similarity. The database might not have a comparable entry.</p>";
+                return;
+            }
+
+            const { quantized_indices, gating_scores, label_text } = bestMatch;
+            
+            let report = `【Step 1: Text to Input IDs (Based on your input)】\n`;
+            report += `  - [${userInputTokens.slice(0, 20).join(', ')}]...\n\n`;
+
+            report += `【Step 2: Found Most Similar Experience (ID: ${bestMatch.id}, Similarity: ${maxScore.toFixed(2)})】\n`;
+            report += `  - Original Text: "${bestMatch.original_text}"\n\n`;
+
+            report += `【Step 3: Simulate inference process based on the matched experience】\n`;
+            report += `  - Predicted Category: "${label_text}"\n`;
+            report += `  - Triggered AI Thought Chain: ${quantized_indices.join(' -> ')}\n`;
+            const gate_display = gating_scores.map(g => g.toFixed(3)).join(' -> ');
+            const avg_gate_value = d3.mean(gating_scores);
+            report += `  - Gate Scores per Layer: ${gate_display}\n`;
+            report += `  - Intuition Channel Activated: ${avg_gate_value > 0.5 ? 'Yes' : 'No'} (Average Gate Value: ${avg_gate_value.toFixed(4)})\n\n`;
+            
+            report += `【Step 4: Analyze the historical semantic tendency of each Symbol in the thought chain】\n`;
+            quantized_indices.forEach((symbolId, i) => {
+                const stats = symbolStats[symbolId];
+                if (stats) {
+                    const labelCounts = d3.rollup(Array.from(stats.experienceIds), 
+                        v => v.length, 
+                        id => allData.find(d => d.id === id).label_text
+                    );
+                    const dominantLabels = Array.from(labelCounts.entries()).sort((a,b) => b[1] - a[1]);
+                    report += `  - [Layer ${i + 1}] Symbol ${symbolId} (appeared ${stats.count} times):\n`;
+                    dominantLabels.slice(0,3).forEach(([label, count]) => {
+                        report += `    - Tends towards "${label}": ${count} times (${(count/stats.count*100).toFixed(2)}%)\n`;
+                    });
+                }
+            });
+
+            const patternKey = quantized_indices.join(' -> ');
+            const matchingExperiences = allData.filter(exp => exp.quantized_indices.join(' -> ') === patternKey);
+            if(matchingExperiences.length > 0) {
+                const historical_success_rate = d3.mean(matchingExperiences, d => d.reward);
+                report += `\n【Step 5: Deep Pattern Analysis based on Experience Database】\n`;
+                report += `  - Thought pattern ${patternKey} appeared ${matchingExperiences.length} times in history.\n`;
+                report += `  - Historical Success Rate (Average Reward): ${(historical_success_rate * 100).toFixed(2)}%\n`;
+            }
+
+            resultContainer.textContent = report;
+        }
+
+        function drag(simulation) {
+            function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+            function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+            function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
+            return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
+        }
+
+
+    </script>
+
+</body>
+</html>
