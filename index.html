@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parrawa AI - Pioneering the AI Mother Tongue</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #0d1b2a, #1b263b);
+            color: #e0e1dd;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 50px 0;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.3));
+            position: relative;
+            overflow: hidden;
+        }
+        header h1 {
+            font-size: 3.5em;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(0, 212, 255, 0.8); }
+            to { text-shadow: 0 0 20px rgba(0, 212, 255, 1); }
+        }
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .lang-switch button {
+            background: transparent;
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            border-radius: 5px;
+            transition: background 0.3s, color 0.3s;
+        }
+        .lang-switch button:hover {
+            background: #00d4ff;
+            color: #0d1b2a;
+        }
+        .lang-switch button.active {
+            background: #00d4ff;
+            color: #0d1b2a;
+        }
+        .intro, .tools, .videos {
+            margin: 40px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+        .intro h2, .tools h2, .videos h2 {
+            font-size: 2em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        .intro p, .tools p {
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+        .tool-item {
+            margin-bottom: 20px;
+        }
+        .tool-item h3 {
+            color: #00d4ff;
+            font-size: 1.5em;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            margin-top: 40px;
+        }
+        footer p {
+            font-size: 0.9em;
+            color: #778da9;
+        }
+        /* 動態粒子背景 */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute;
+            background: rgba(0, 212, 255, 0.7);
+            border-radius: 50%;
+            animation: float 10s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(0); opacity: 0.5; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-100vh); opacity: 0; }
+        }
+        /* 語言切換內容顯示/隱藏 */
+        [data-lang="zh"] { display: none; }
+        [data-lang="en"] { display: block; }
+        body[lang="zh-TW"] [data-lang="zh"] { display: block; }
+        body[lang="zh-TW"] [data-lang="en"] { display: none; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body lang="en">
+    <header>
+        <div class="particles">
+            <script>
+                for (let i = 0; i < 50; i++) {
+                    let particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.width = `${Math.random() * 5 + 2}px`;
+                    particle.style.height = particle.style.width;
+                    particle.style.left = `${Math.random() * 100}vw`;
+                    particle.style.animationDelay = `${Math.random() * 10}s`;
+                    document.querySelector('.particles').appendChild(particle);
+                }
+            </script>
+        </div>
+        <div class="lang-switch">
+            <!-- 移除了按鈕上的 data-lang 屬性，改用 data-lang-code -->
+            <button class="lang-btn" data-lang-code="zh">CHINESE</button>
+            <button class="lang-btn" data-lang-code="en">ENGLISH</button>
+        </div>
+        <h1 data-lang="zh">Parrawa AI</h1>
+        <h1 data-lang="en">Parrawa AI</h1>
+        <p data-lang="zh">開創多智能體協調的未來</p>
+        <p data-lang="en">Pioneering Multi-Agent Coordination</p>
+    </header>
+    <div class="container">
+        <section class="intro">
+            <h2 data-lang="zh">關於Parrawa AI</h2>
+            <h2 data-lang="en">About Parrawa AI</h2>
+            <p data-lang="zh">
+                Parrawa AI是一家領先的人工智慧公司，致力於開發多智能體協調技術，核心技術為AI母語（Artificial Intentional Message, AIM）。AIM是一種動態學習的離散符號序列，通過向量量化變分自編碼器（VQ-VAE）生成，無需人為干預即可實現智能體間的高效意圖表達與協調。在情境囚徒困境等複雜任務中，AIM能快速收斂至合作策略，適應動態獎勵結構，實現高聯合獎勵（偶數情境 (5, 5)，奇數情境 (4, 4)）。
+            </p>
+            <p data-lang="en">
+                Parrawa AI is a leading artificial intelligence company dedicated to advancing multi-agent coordination through its core technology, the AI Mother Tongue (Artificial Intentional Message, AIM). AIM is a dynamically learned discrete symbol sequence generated via Vector Quantized Variational Autoencoder (VQ-VAE), enabling efficient intent expression and coordination without human intervention. In complex tasks like the contextual Prisoner's Dilemma, AIM achieves rapid convergence to cooperative strategies, adapting seamlessly to dynamic reward structures, achieving high joint rewards ((5, 5) in even-label scenarios, (4, 4) in odd-label scenarios).
+            </p>
+            <p data-lang="zh">
+                我們的技術靈感源自人類語言的結構化表達，結合強化學習（A2C框架）和反思機制，讓智能體在多變環境中實現無縫協作，推動AI從單一任務向多智能體協同進化。
+            </p>
+            <p data-lang="en">
+                Inspired by the structured expressiveness of human language, AIM integrates reinforcement learning (A2C framework) and reflection mechanisms, empowering agents to collaborate effectively in evolving environments, advancing AI from single-task execution to multi-agent synergy.
+            </p>
+        </section>
+        <section class="tools">
+            <h2 data-lang="zh">核心AI工具</h2>
+            <h2 data-lang="en">Core AI Tools</h2>
+            <div class="tool-item">
+                <h3 data-lang="zh">Prompt Guider for AI Drawing：高效繪圖提示生成</h3>
+                <h3 data-lang="en">Prompt Guider for AI Drawing: High-Efficiency Drawing Prompt Generator</h3>
+                <p data-lang="zh">
+                    Prompt Guider for AI Drawing是一款高效工具，專為生成複雜且精準的提示詞而設計，僅需數千Token即可引導AI繪圖系統生成高品質視覺內容，滿足設計、娛樂和教育等多樣化需求。
+                </p>
+                <p data-lang="en">
+                    Prompt Guider for AI Drawing is a high-efficiency tool designed to generate complex and precise prompts, requiring only a few thousand tokens to guide AI drawing systems in producing high-quality visuals, catering to diverse needs in design, entertainment, and education.
+                </p>
+                <p data-lang="zh">
+                    <a href="https://www.coze.com/store/bot/7350973667414753287" style="color: #00d4ff; text-decoration: none;">立即體驗</a>
+                </p>
+                <p data-lang="en">
+                    <a href="https://www.coze.com/store/bot/7350973667414753287" style="color: #00d4ff; text-decoration: none;">Experience Now</a>
+                </p>
+            </div>
+            <div class="tool-item">
+                <h3 data-lang="zh">Veo3 Prompt Guider：文生影片提示生成</h3>
+                <h3 data-lang="en">Veo3 Prompt Guider: Text-to-Video Prompt Generator</h3>
+                <p data-lang="zh">
+                    Veo3 Prompt Guider是一款革命性的工具，專為生成複雜且充分指引Veo3的提示詞而設計，僅需數千Token即可驅動文生影片創作，生成多風格、高品質的影片內容。該工具與AIM的結構化訊息理念相通，廣泛應用於影視製作與創意內容生成。
+                </p>
+                <p data-lang="en">
+                    Veo3 Prompt Guider is a revolutionary tool designed to generate complex and precise prompts for Veo3, requiring only a few thousand tokens to drive text-to-video creation, producing high-quality, multi-style video content. Aligned with AIM’s structured messaging philosophy, it is widely used in film production and creative content generation.
+                </p>
+                <p data-lang="zh">
+                    <a href="https://www.coze.com/store/agent/7516840502181052424?bid=6gklscigg7007&bot_id=true" style="color: #00d4ff; text-decoration: none;">立即體驗</a>
+                </p>
+                <p data-lang="en">
+                    <a href="https://www.coze.com/store/agent/7516840502181052424?bid=6gklscigg7007&bot_id=true" style="color: #00d4ff; text-decoration: none;">Experience Now</a>
+                </p>
+            </div>
+            <!-- 新增 "程式輔助大師" 工具 -->
+            <div class="tool-item">
+                <h3 data-lang="zh">程式輔助大師：程式碼精準修正與生成</h3>
+                <h3 data-lang="en">Code Assistant Master: Precise Code Correction and Generation</h3>
+                <p data-lang="zh">
+                    他有三大超強能力，第一：提出修正方案後，程式輔助大師能夠先研究使用者所上傳的程式邏輯，即使非常複雜他也能夠採取外科手術精準進行修正但不影響既有程式邏輯。第二：單純上傳錯誤訊息，他便會自動提出修正方案完成精準修正。第三：只要提示新建程式，他就會著手撰寫出。上述三種任務，程式輔助大師都能基於其背後精巧提示詞以遠優於直接使用LLM模型的效果。
+                </p>
+                <p data-lang="en">
+                    It has three major superpowers. First, after proposing a correction plan, the Code Assistant Master can first study the user's uploaded code logic. Even if it's very complex, it can perform surgical-precision corrections without affecting existing code logic. Second, by simply uploading an error message, it will automatically propose a solution and complete the precise correction. Third, as long as you prompt it to create a new program, it will start writing it. For all three tasks mentioned above, the Code Assistant Master can achieve results far superior to using a direct LLM model, thanks to the ingenious prompts behind it.
+                </p>
+                <p data-lang="zh">
+                    <a href="https://www.stack-ai.com/chat/688f8e8dabef6faea909e507-3ZRN7Gqn7dREXOMTwzUCOF" style="color: #00d4ff; text-decoration: none;">立即體驗</a>
+                </p>
+                <p data-lang="en">
+                    <a href="https://www.stack-ai.com/chat/688f8e8dabef6faea909e507-3ZRN7Gqn7dREXOMTwzUCOF" style="color: #00d4ff; text-decoration: none;">Experience Now</a>
+                </p>
+            </div>
+        </section>
+        <section class="videos">
+            <h2 data-lang="zh">探索我們的技術</h2>
+            <h2 data-lang="en">Explore Our Technology</h2>
+            <div class="video-grid">
+                <div class="video-container">
+                    <iframe src="https://www.youtube.com/embed/iWYSSUIs9g4" title="Prompt Guider for AI Drawing Demo" allowfullscreen></iframe>
+                </div>
+                <div class="video-container">
+                    <iframe src="https://www.youtube.com/embed/AkKmF3d0zKs" title="Veo3 Prompt Guider Video Generation" allowfullscreen></iframe>
+                </div>
+            </div>
+        </section>
+    </div>
+    <footer>
+        <p data-lang="zh">© 2025 Parrawa AI. 版權所有。</p>
+        <p data-lang="en">© 2025 Parrawa AI. All Rights Reserved.</p>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttons = document.querySelectorAll('.lang-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const lang = button.getAttribute('data-lang-code'); // 使用新的屬性 data-lang-code
+                    document.body.setAttribute('lang', lang === 'zh' ? 'zh-TW' : 'en');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                });
+            });
+
+            // 確保初始狀態為英文，並將 ENGLISH 按鈕設為啟用狀態
+            document.body.setAttribute('lang', 'en');
+            // 移除所有按鈕的 active 類別
+            buttons.forEach(btn => btn.classList.remove('active'));
+            // 為 ENGLISH 按鈕添加 active 類別
+            document.querySelector('.lang-btn[data-lang-code="en"]').classList.add('active');
+        });
+    </script>
+</body>
+</html>
